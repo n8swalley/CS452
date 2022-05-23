@@ -1,0 +1,76 @@
+//----------------------------------------------------------------------
+// 
+// Author: N8 Swalley & K8 Edwards
+// Date: 1/21/2022
+//
+// PI MPI:
+// This program uses MPI to approximate Pi using Leibniz's formula.
+//
+//----------------------------------------------------------------------
+
+#include <iostream>
+#include <stdio.h>
+#include <string>
+#include <cmath>
+#include <iomanip>
+#include "mpi.h"
+
+using namespace std;
+
+long double computepi(int id, int np, long double n)
+{
+	long double sum = 0;
+	for (long int i=id; i<n; i+=np)
+	{
+		double temp_sum = 1.0 / ( 2.0 * (double)i + 1);
+		if (i % 2 == 0)
+		{
+			sum += temp_sum;
+		}
+		else 
+		{
+			sum -= temp_sum;
+		}
+	}
+	return sum;
+}
+
+int main(int argc, char *argv[])
+{
+	MPI_Init(&argc,&argv);
+	
+	int id;
+	MPI_Comm_rank(MPI_COMM_WORLD,&id);
+	
+	int np;
+	MPI_Comm_size(MPI_COMM_WORLD,&np);
+	
+	long double n;
+	//long double limit = 10000000000;
+	MPI_Status status;
+
+	if(id==0)  // gather the input
+	{
+		cout << "Enter the value of n (n>1): ";
+		cin >> n;
+		//n=10000000000;   
+	}
+
+	MPI_Bcast(&n,1,MPI_LONG_DOUBLE,0,MPI_COMM_WORLD);
+	//MPI_Bcast(&limit,1,MPI_LONG_DOUBLE,0,MPI_COMM_WORLD);
+	
+	long double sum=0;
+	
+	sum=computepi(id,np,n);
+	
+	long double bigsum=0;
+	MPI_Allreduce(&sum,&bigsum,1,MPI_LONG_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+	
+	if(id==0)
+	{
+		cout << fixed<<setprecision(10) << "Pi is approximately: " << 4.0*bigsum << endl;
+	}
+	
+	MPI_Finalize();
+	return 0;
+}
